@@ -27,11 +27,29 @@ export default function Chat() {
         
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            
             if (data.status === 'Processing') {
                 setIsTyping(true);
             } else if (data.status === 'Completed') {
                 setIsTyping(false);
-                setMessages(prev => [...prev, { text: data.answer, sender: 'ai' }]);
+                
+                try {
+                    const parsedAnswer = JSON.parse(data.answer);
+                    
+                    const mainText = parsedAnswer.text_res;
+                    
+                    const sources = parsedAnswer.ref_source && parsedAnswer.ref_source.length > 0
+                        ? "\n\n📌 Nguồn tham khảo:\n" + parsedAnswer.ref_source.map((src, idx) => `[${idx+1}] ${src}`).join('\n')
+                        : "";
+
+                    setMessages(prev => [...prev, { 
+                        text: mainText + sources, 
+                        sender: 'ai' 
+                    }]);
+                    
+                } catch (e) {
+                    setMessages(prev => [...prev, { text: data.answer, sender: 'ai' }]);
+                }
             } else if (data.status === 'Error') {
                 setIsTyping(false);
                 alert("Lỗi: " + data.message);
